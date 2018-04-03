@@ -10,11 +10,26 @@ import java.util.LinkedList;
  */
 public final class StreamLine {
 	private boolean initCompleted = false;
+	
+	private int coreThreadSize = 3;
+	private int tailWorkerSize = 1;
 
 	private LinkedList<Class<? extends Worker>> workerClassList = new LinkedList<Class<? extends Worker>>();
 	private LinkedList<Context> contextList = new LinkedList<Context>();
 
 	private Worker header = null;
+	
+	public StreamLine() {
+		this(3);
+	}
+	
+	public StreamLine(int coreThreadSize) {
+		this.coreThreadSize = coreThreadSize;
+	}
+	
+	public void setTailWorkerSize(int size) {
+		this.tailWorkerSize = size;
+	}
 
 	/**
 	 * 记录下每个工序所有用到的worker worker存储的顺序即为工序的顺序，按照顺序存储，第一个为header，最后一个是tailer
@@ -46,14 +61,14 @@ public final class StreamLine {
 			if (workerClassList.size() <= 1) {
 				throw new Exception("初始化错误，少于两个worker!");
 			} else {
-				WorkersPool tailWorkersPool = new WorkersPool<>(1, null, workerClassList.getLast());
+				WorkersPool tailWorkersPool = new WorkersPool<>(tailWorkerSize, null, workerClassList.getLast());
 				Context tailContext = new Context(null, tailWorkersPool);
 				contextList.push(tailContext);
 				Context nextContext = tailContext;
 				// 创建context，并为每个context创建workerPool
 				for (int i = workerClassList.size()-2; i > 0; i--) {
 					// 创建workersPool
-					WorkersPool workersPool = new WorkersPool(3, nextContext, workerClassList.get(i));
+					WorkersPool workersPool = new WorkersPool(coreThreadSize, nextContext, workerClassList.get(i));
 					// 创建context
 					Context context = new Context<>(nextContext, workersPool);
 					contextList.push(context);
