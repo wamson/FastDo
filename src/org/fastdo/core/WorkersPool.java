@@ -18,9 +18,17 @@ public class WorkersPool<M> {
 	private LinkedBlockingQueue<M> megQueue = null;
 
 	// 下一个工序的context
-	private Context nextContext = null;
+	private Context nextContext;
 
 	private WorkersPool() {
+	}
+	
+	public int getWorkersSize() {
+		return coreWorkersSize;
+	}
+	
+	public Context getNextContext() {
+		return nextContext;
 	}
 
 	public WorkersPool(Context nextContext, Class<? extends Worker> clazz) throws InterruptedException {
@@ -32,7 +40,7 @@ public class WorkersPool<M> {
 		this(coreWorkersSize, Integer.MAX_VALUE, nextContext, clazz);
 	}
 
-	public WorkersPool(int coreWorkersSize, int megQueueSize, Context nextContext, Class<? extends Worker> clazz)
+	public WorkersPool(int coreWorkersSize, int megQueueSize, final Context nextContext, Class<? extends Worker> clazz)
 			throws InterruptedException {
 		this.coreWorkersSize = coreWorkersSize;
 		workersList = new ArrayList<Thread>(coreWorkersSize);
@@ -58,42 +66,14 @@ public class WorkersPool<M> {
 							}
 							if (meg == FinishMeg.get()) {
 								allCompleted = true;
-								// 启动一个线程，当所有的线程都处理完数据后，发送finishMeg给下一个工序
-								new Thread() {
-									public void run() {
-										// 如果是最后一个工序，则告诉fatory线程已全部完成。
-										if (nextContext == null) {
-											synchronized (Factory.class) {
-												Factory.class.notify();
-											}
-										} else {
-											boolean anyThreadAlive = false;
-											while (anyThreadAlive) {
-												for (Thread thread : workersList) {
-													anyThreadAlive = anyThreadAlive | thread.isAlive();
-												}
-												try {
-													Thread.sleep(200);
-												} catch (InterruptedException e) {
-													e.printStackTrace();
-												}
-											}
-											// 所有的线程都跑完了，发送结束信息给下一个工序
-											try {
-												nextContext.write(FinishMeg.get());
-											} catch (Exception e) {
-												e.printStackTrace();
-											}
-										}
-									}
-								}.start();
-
+								// 启动监测线程
+								createSuperviseThread();
 								// 跳出线程的循环。
 								break;
 							} else if (meg != null) {
 								worker.work(meg, nextContext);
-							// meg为空，allCompleted为真，该worker线程结束
-							}else {
+								// meg为空，allCompleted为真，该worker线程结束
+							} else {
 								break;
 							}
 						}
@@ -116,4 +96,47 @@ public class WorkersPool<M> {
 		megQueue.put(meg);
 	}
 
+	public boolean anyWorkerAlive() {
+		boolean flag = workersList.get(0).isAlive();
+		for (int i = 1; i < workersList.size(); i++) {
+			flag = flag | workersList.get(i).isAlive();
+		}
+		return flag;
+	}
+
+	// 启动一个线程，当所有的线程都处理完数据后，发送finishMeg给下一个工序
+	private void createSuperviseThread() {
+
+		new Thread() {
+			private WorkersPool workersPool;
+
+			public Thread accept(WorkersPool w) {
+				this.workersPool = w;
+				return this;
+			}
+
+			public void run() {
+				// 如果是最后一个工序，则告诉fatory线程已全部完成。
+				if (this.workersPool.getNextContext() == null) {
+					synchronized (Factory.class) {
+						Factory.class.notify();
+					}
+				} else {
+					while (this.workersPool.anyWorkerAlive()) {
+						try {
+							Thread.sleep(200);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+					// 所有的线程都跑完了，发送结束信息给下一个工序
+					try {
+						this.workersPool.getNextContext().write(FinishMeg.get());
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}.accept(this).start();
+	}
 }

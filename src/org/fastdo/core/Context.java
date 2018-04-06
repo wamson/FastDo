@@ -3,7 +3,7 @@ package org.fastdo.core;
 public final class Context<T> {
 	// 下一个工序的Context
 	private Context nextContext = null;
-	
+
 	private WorkersPool<T> workersPool = null;
 	
 	public Context(Context nextContext, WorkersPool workersPool) {

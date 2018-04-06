@@ -8,11 +8,13 @@ public class Task {
 
 	public static void main(String[] args) throws Exception {
 		Timer timer = new Timer();
-		StreamLine sLine = new StreamLine();
+
+		StreamLine sLine = new StreamLine(3);
 		sLine.setWorkers(MyHeader.class);
-		sLine.setWorkers(MyWorker.class);
-		sLine.setWorkers(Mytailer.class);
+		sLine.setWorkers(MyFormater.class);
+		sLine.setWorkers(MyTailer.class);
 		Factory.setStreamline(sLine);
+		System.out.println("waiting...");
 		Factory.start();
 		
 		Factory.waitComplete();

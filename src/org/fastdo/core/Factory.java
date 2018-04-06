@@ -4,9 +4,6 @@ public class Factory {
 	private Factory() {
 	}
 
-	// private static LinkedList<StreamLine> streamLineList = new
-	// LinkedList<StreamLine>();
-//	private static Class<StreamLine> clazzStreamLine = null;
 	private static StreamLine streamLine = null;
 
 	private static boolean initCompleted = false;
@@ -40,7 +37,6 @@ public class Factory {
 
 	public static void waitComplete() throws InterruptedException {
 		// 等待所有的任务都完成了才能返回
-		System.out.println("waiting...");
 		synchronized (Factory.class) {
 			Factory.class.wait();
 		}
