@@ -40,6 +40,5 @@ public class Factory {
 		synchronized (Factory.class) {
 			Factory.class.wait();
 		}
-		System.out.println("finished!!!");
 	}
 }

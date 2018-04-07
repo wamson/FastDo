@@ -23,11 +23,7 @@ public class WorkersPool<M> {
 	private WorkersPool() {
 	}
 	
-	public int getWorkersSize() {
-		return coreWorkersSize;
-	}
-	
-	public Context getNextContext() {
+	private Context getNextContext() {
 		return nextContext;
 	}
 
@@ -72,7 +68,7 @@ public class WorkersPool<M> {
 								break;
 							} else if (meg != null) {
 								worker.work(meg, nextContext);
-								// meg为空，allCompleted为真，该worker线程结束
+							// meg为空，allCompleted为真，该worker线程结束
 							} else {
 								break;
 							}
@@ -106,7 +102,6 @@ public class WorkersPool<M> {
 
 	// 启动一个线程，当所有的线程都处理完数据后，发送finishMeg给下一个工序
 	private void createSuperviseThread() {
-
 		new Thread() {
 			private WorkersPool workersPool;
 
